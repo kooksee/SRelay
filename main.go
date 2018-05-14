@@ -3,9 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-
-	_ "SRelay/routers"
-
+	
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/toolbox"
