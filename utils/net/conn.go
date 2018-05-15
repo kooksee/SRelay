@@ -78,12 +78,12 @@ func (conn *WrapReadWriteCloserConn) SetWriteDeadline(t time.Time) error {
 	return &net.OpError{Op: "set", Net: "wrap", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }
 
-func ConnectServer(protocol string, addr string) (c Conn, err error) {
+func ConnectServer(protocol string, addr string, block kcp.BlockCrypt) (c Conn, err error) {
 	switch protocol {
 	case "tcp":
 		return ConnectTcpServer(addr)
 	case "kcp":
-		kcpConn, errRet := kcp.DialWithOptions(addr, nil, 10, 3)
+		kcpConn, errRet := kcp.DialWithOptions(addr, block, 10, 3)
 		if errRet != nil {
 			err = errRet
 			return

@@ -1,30 +1,23 @@
 package tserver
 
 import (
-	"net/http"
 	"time"
 
-	klog "github.com/sirupsen/logrus"
-
-	knet "SRelay/utils/net"
-
-	"github.com/gorilla/websocket"
+	"github.com/json-iterator/go"
+	"github.com/kooksee/log"
+	"github.com/kooksee/srelay/config"
 )
 
 var (
-	clients map[int][]knet.Conn
-
-	log      *klog.Entry
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:    4096,
-		WriteBufferSize:   4096,
-		EnableCompression: true,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
+	cfg    *config.Config
+	json   = jsoniter.ConfigCompatibleWithStandardLibrary
+	logger = log.New("package", "tserver")
 )
 
 const (
-	connReadTimeout time.Duration = 10 * time.Second
+	connReadTimeout = 10 * time.Second
 )
+
+func SetCfg(cfg1 *config.Config) {
+	cfg = cfg1
+}

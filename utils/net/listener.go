@@ -19,7 +19,7 @@ import (
 	"net"
 	"sync"
 
-	"SRelay/utils/errors"
+	"github.com/kooksee/srelay/utils/errors"
 
 	log "github.com/sirupsen/logrus"
 )

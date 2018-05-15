@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"SRelay/utils/pool"
+	"github.com/kooksee/srelay/utils/pool"
 
 	log "github.com/sirupsen/logrus"
 )

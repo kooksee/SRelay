@@ -1,50 +1,42 @@
 package main
 
 import (
-	"errors"
-	"fmt"
-	
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
-	"github.com/astaxie/beego/toolbox"
+	"encoding/json"
+	"flag"
+	"runtime"
+
+	"github.com/kooksee/log"
+	"github.com/kooksee/srelay/config"
+	"github.com/kooksee/srelay/tserver"
 )
 
 const Version = "1.0"
 
-type DatabaseCheck struct {
-}
-
-func (dc *DatabaseCheck) Check() error {
-	return errors.New("can't connect database")
-}
-
 func main() {
 
-	// beego.LoadAppConfig("ini", "kdata/config/knode.ini")
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GC()
 
-	// beego.AppConfig.DefaultString()
-	beego.BConfig.Listen.EnableAdmin = true
-	beego.BConfig.Log.FileLineNum = true
-	beego.BConfig.Log.AccessLogsFormat = "JSON_FORMAT"
-	toolbox.AddHealthCheck("database", &DatabaseCheck{})
+	cfg := config.GetCfg()
+	flag.BoolVar(&cfg.Debug, "debug", cfg.Debug, "debug mode")
+	flag.StringVar(&cfg.LogLevel, "level", cfg.LogLevel, "log level")
+	flag.StringVar(&cfg.Host, "host", cfg.Host, "app host")
+	flag.IntVar(&cfg.KcpPort, "port", cfg.KcpPort, "kcp port")
+	flag.IntVar(&cfg.HttpPort, "httpport", cfg.HttpPort, "http port")
+	flag.IntVar(&cfg.UdpPort, "udpport", cfg.UdpPort, "udp port")
+	flag.Parse()
 
-	logs.EnableFuncCallDepth(true)
-	logs.SetLogFuncCallDepth(3)
-	logs.Async(1e3)
+	d, _ := json.Marshal(cfg)
+	log.Info(string(d))
 
-	if beego.BConfig.RunMode == beego.DEV {
-		logs.SetLogger(logs.AdapterConsole, `{"level":1}`)
-		beego.SetLevel(beego.LevelDebug)
-	}
+	tserver.SetCfg(cfg)
 
-	if beego.BConfig.RunMode == beego.PROD {
-		logs.SetLogger(logs.AdapterFile, `{"filename":"knode.log","level":7,"maxlines":0,"maxsize":0,"daily":true,"maxdays":10}`)
-		beego.SetLevel(beego.LevelError)
-	}
+	ks := tserver.NewKcpServer()
+	ks.Listen()
+	ks.Start()
 
-	toolbox.AddTask("tk1", toolbox.NewTask("tk1", "0/30 * * * * *", func() error { fmt.Println("tk1"); return nil }))
-	toolbox.StartTask()
-	defer toolbox.StopTask()
+	tserver.RunHttpServer()
 
-	beego.Run()
+	select {}
+
 }

@@ -4,24 +4,33 @@ import (
 	"github.com/json-iterator/go"
 )
 
-type resp struct {
-	Code string `json:"code,omitempty"`
-	Msg  string `json:"msg,omitempty"`
-	Data string `json:"data,omitempty"`
+type Resp struct {
+	Code string      `json:"code,omitempty"`
+	Msg  string      `json:"msg,omitempty"`
+	Data interface{} `json:"data,omitempty"`
 }
 
-func ResultOk() []byte {
+func ResultOk() string {
 
-	d, _ := jsoniter.MarshalToString(resp{
+	d, _ := jsoniter.MarshalToString(Resp{
 		Code: "ok",
 	})
-	return []byte(d + "\n")
+	return d
 }
 
-func ResultError(msg string) []byte {
-	d, _ := jsoniter.MarshalToString(resp{
-		Code: "error",
-		Msg:  msg,
+func ResultOkWithData(data interface{}) string {
+
+	d, _ := jsoniter.MarshalToString(Resp{
+		Code: "ok",
+		Data: data,
 	})
-	return []byte(d + "\n")
+	return d
+}
+
+func ResultError(msg error) string {
+	d, _ := jsoniter.MarshalToString(Resp{
+		Code: "error",
+		Msg:  msg.Error(),
+	})
+	return d
 }

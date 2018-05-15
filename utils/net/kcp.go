@@ -68,8 +68,8 @@ type KcpListener struct {
 	*log.Logger
 }
 
-func ListenKcp(bindAddr string, bindPort int) (l *KcpListener, err error) {
-	listener, err := kcp.ListenWithOptions(fmt.Sprintf("%s:%d", bindAddr, bindPort), nil, 10, 3)
+func ListenKcp(bindAddr string, bindPort int, block kcp.BlockCrypt) (l *KcpListener, err error) {
+	listener, err := kcp.ListenWithOptions(fmt.Sprintf("%s:%d", bindAddr, bindPort), block, 10, 3)
 	if err != nil {
 		return l, err
 	}
