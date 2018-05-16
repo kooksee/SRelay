@@ -78,34 +78,28 @@ func (ks *KcpServer) Listen() error {
 }
 
 func (ks *KcpServer) onPing(tx *types.KMsg, conn knet.Conn) {
-	ks.clients.SetDefault(tx.FAddr, conn)
+	if v, _ := cfg.Cache.Get(tx.Data.(string)); v != nil {
+		ks.clients.SetDefault(v.(string), conn)
+	}
 }
 
 func (ks *KcpServer) onReply(tx *types.KMsg) {
 	ks.clients.SetDefault(tx.ID, tx)
 }
-func (ks *KcpServer) onCreateUdp(tx *types.KMsg, conn knet.Conn) {
-	data := ""
-	if addr, err := ks.usManager.CreateUdp(); err != nil {
-		data = types.ResultError(err)
-	} else {
-		data = types.ResultOkWithData(addr)
-	}
-	ks.Send(&types.KMsg{
-		Event: types.CREATEUDPRESP,
-		Data:  data,
-	})
+
+func (ks *KcpServer) CreateUdp(port int) error {
+	return ks.usManager.CreateUdp(port)
 }
 
 func (ks *KcpServer) onHandle(conn knet.Conn) {
 	read := bufio.NewReader(conn)
 	for {
-		message, err := read.ReadBytes('\n')
+		message, err := read.ReadBytes(types.Delim)
 		if err != nil {
 			logger.Info("kcp message error", "err", err)
 			break
 		}
-		message = bytes.Trim(message, "\n")
+		message = bytes.TrimSpace(message)
 		logger.Debug("message data", "data", string(message))
 
 		tx := &types.KMsg{}
@@ -117,8 +111,6 @@ func (ks *KcpServer) onHandle(conn knet.Conn) {
 		switch tx.Event {
 		case types.PINGREQ:
 			ks.onPing(tx, conn)
-		case types.CREATEUDPREQ:
-			ks.onCreateUdp(tx, conn)
 		default:
 			logger.Warn("message event error", "err", "找不到该event", "event", tx.Event)
 		}

@@ -3,10 +3,9 @@ package server
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
-	"net"
 
-	"github.com/kataras/iris/core/errors"
 	knet "github.com/kooksee/srelay/utils/net"
 
 	kts "github.com/kooksee/srelay/types"
@@ -18,24 +17,27 @@ type UdpServerManager struct {
 	umap    map[int]*knet.UdpListener
 }
 
-func (u *UdpServerManager) CreateUdp() (*net.UDPAddr, error) {
+func (u *UdpServerManager) CreateUdp(port int) error {
 	if len(u.umap) > u.MaxPort-u.MinPort {
-		return nil, errors.New("端口数量操作设置的最大限制")
+		return errors.New("端口数量操作设置的最大限制")
 	}
 
-	for i := u.MinPort; i < u.MaxPort; i++ {
-		if _, ok := u.umap[i]; ok {
-			continue
-		}
-		l, err := knet.ListenUDP(fmt.Sprintf("0.0.0.0:%d", i))
-		if err != nil {
-			return nil, err
-		}
-		u.umap[i] = l
-		go u.onHandleListen(u.umap[i])
-		return &net.UDPAddr{Port: i}, nil
+	if port > u.MaxPort || port < u.MinPort {
+		return errors.New("超出了端口范围")
 	}
-	return nil, errors.New("未知错误")
+
+	if _, ok := u.umap[port]; ok {
+		return errors.New("端口已经存在")
+	}
+
+	l, err := knet.ListenUDP(fmt.Sprintf("0.0.0.0:%d", port))
+	if err != nil {
+		return err
+	}
+
+	u.umap[port] = l
+	go u.onHandleListen(u.umap[port])
+	return nil
 }
 
 func (u *UdpServerManager) onHandleConn(conn knet.Conn) {
@@ -46,7 +48,7 @@ func (u *UdpServerManager) onHandleConn(conn knet.Conn) {
 			logger.Error(err.Error())
 			break
 		}
-		message = bytes.Trim(message, string(kts.Delim))
+		message = bytes.TrimSpace(message)
 
 		// 解析请求数据
 		msg := &kts.KMsg{}
