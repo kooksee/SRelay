@@ -1,10 +1,7 @@
 package types
 
 const (
-	PINGREQ       = "pingReq"
-	PINGRESP      = "pingResp"
-	CREATEUDPREQ  = "createUdpReq"
-	CREATEUDPRESP = "createUdpResp"
+	PINGREQ = "pingReq"
 )
 
 const Delim = '\n'

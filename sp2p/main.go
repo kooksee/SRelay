@@ -20,6 +20,8 @@ func NewSP2p() *SP2p {
 	}
 	tab := newTable(PubkeyID(&cfg.PriV.PublicKey), p2p.localAddr)
 	p2p.tab = tab
+
+	p2p.localAddr = &net.UDPAddr{Port: cfg.Port, IP: net.ParseIP(cfg.Host)}
 	return p2p
 }
 
@@ -57,7 +59,14 @@ func (s *SP2p) LoadSeeds(seeds []string) error {
 		}
 
 		// 节点启动的时候如果发现节点数量少,就去请求其他节点
-		if s.tab.Size() < 3000 {
+		if s.tab.Size() < cfg.MinNodeSize {
+			// 每一个域选取一个节点
+			for _, b := range s.tab.buckets {
+				b.peers.Each(func(index int, value interface{}) {
+					go s.findNode(value.(*Node).addr().String(), 8)
+				})
+			}
+		} else if s.tab.Size() < cfg.MaxNodeSize {
 			// 每一个域选取一个节点
 			for _, b := range s.tab.buckets {
 				go s.findNode(b.Random().addr().String(), 8)
@@ -84,6 +93,11 @@ func (s *SP2p) dumpSeeds() {
 }
 
 func (s *SP2p) tickHandler() {
+	pingMsg := (&kts.KMsg{
+		Event: kts.PINGREQ,
+		FAddr: s.tab.GetNode().addr().String(),
+	}).Dumps()
+
 	for {
 		select {
 		case <-cfg.NodeBackupTick.C:
@@ -96,6 +110,8 @@ func (s *SP2p) tickHandler() {
 			for _, n := range s.tab.FindRandomNodes(20) {
 				go s.pingNode(n.addr().String())
 			}
+		case <-cfg.PingKcpTick.C:
+			s.conn.Write(pingMsg)
 		}
 	}
 }
@@ -106,14 +122,12 @@ func (s *SP2p) StartP2p() {
 		panic(err.Error())
 	}
 
-	if c, err := knet.ConnectServer("kcp", fmt.Sprintf("%s:%d", cfg.Host, cfg.KcpPort), block); err != nil {
+	if c, err := knet.ConnectServer("kcp", fmt.Sprintf("%s:%d", cfg.Host, cfg.Port), block); err != nil {
 		panic(err.Error())
 	} else {
 		s.conn = c
 		go s.accept()
-		s.handlerUdpPort()
-		go s.handler()
-		go s.ping()
+		go s.handlerTx()
 		go s.tickHandler()
 	}
 }
@@ -144,41 +158,7 @@ func (s *SP2p) write(msg *kts.KMsg) error {
 	return nil
 }
 
-func (s *SP2p) handlerUdpPort() {
-	t := time.NewTimer(2 * time.Second)
-	msg := &kts.KMsg{
-		Event: kts.CREATEUDPREQ,
-		FAddr: s.localAddr.String(),
-	}
-
-	if err := s.write(msg); err != nil {
-		logger.Error(err.Error())
-	}
-
-	for {
-		select {
-		case tx := <-s.txC:
-			if tx.Event == kts.CREATEUDPRESP {
-				if d, ok := tx.Data.(kts.Resp); ok {
-					if d.Code == "ok" {
-						s.localAddr = d.Data.(*net.UDPAddr)
-						return
-					} else {
-						logger.Error(d.Msg)
-					}
-				}
-			}
-		case <-t.C:
-			if err := s.write(msg); err != nil {
-				logger.Error(err.Error())
-				time.Sleep(time.Second)
-				continue
-			}
-		}
-	}
-}
-
-func (s *SP2p) handler() {
+func (s *SP2p) handlerTx() {
 	for {
 		tx := <-s.txC
 		if hm.Contain(tx.Event) {
@@ -208,38 +188,19 @@ func (s *SP2p) accept() {
 	}
 }
 
-func (s *SP2p) pingNode(taddr string) error {
-	msg := &kts.KMsg{
-		Event: "ping",
-		TAddr: taddr,
-	}
-	return s.write(msg)
-}
-
 func (s *SP2p) GetTable() *Table {
 	return s.tab
 }
-
+func (s *SP2p) pingNode(taddr string) error {
+	return s.write(&kts.KMsg{
+		Event: "ping",
+		TAddr: taddr,
+	})
+}
 func (s *SP2p) findNode(taddr string, n int) error {
-	msg := &kts.KMsg{
+	return s.write(&kts.KMsg{
 		Event: "findNode",
 		TAddr: taddr,
 		Data:  protocol.FindNodeReq{NID: s.tab.selfNode.ID.String(), N: n},
-	}
-	return s.write(msg)
-}
-
-func (s *SP2p) ping() {
-	tick := time.NewTicker(time.Minute)
-	pingMsg := (&kts.KMsg{
-		Event: kts.PINGREQ,
-		FAddr: s.tab.GetNode().addr().String(),
-	}).Dumps()
-
-	for {
-		select {
-		case <-tick.C:
-			s.conn.Write(pingMsg)
-		}
-	}
+	})
 }

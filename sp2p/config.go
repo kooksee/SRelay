@@ -38,6 +38,7 @@ type KConfig struct {
 	NodeBackupTick *time.Ticker
 	PingTick       *time.Ticker
 	FindNodeTick   *time.Ticker
+	PingKcpTick    *time.Ticker
 
 	// 节点长度
 	NodeIDBits int
@@ -66,7 +67,7 @@ type KConfig struct {
 	Key     string
 	Salt    string
 	Host    string
-	KcpPort int
+	Port int
 
 	Db *badger.DB
 
@@ -75,6 +76,9 @@ type KConfig struct {
 	DELIMITER string
 
 	PriV *ecdsa.PrivateKey
+
+	MaxNodeSize int
+	MinNodeSize int
 }
 
 func DefaultKConfig() *KConfig {
@@ -111,5 +115,9 @@ func DefaultKConfig() *KConfig {
 		NodeBackupTick: time.NewTicker(10 * time.Minute),
 		PingTick:       time.NewTicker(10 * time.Minute),
 		FindNodeTick:   time.NewTicker(1 * time.Hour),
+		PingKcpTick:    time.NewTicker(2 * time.Second),
+
+		MaxNodeSize:    2000,
+		MinNodeSize:    100,
 	}
 }
