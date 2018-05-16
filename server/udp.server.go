@@ -1,4 +1,4 @@
-package tserver
+package server
 
 import (
 	"bufio"

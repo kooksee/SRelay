@@ -9,30 +9,108 @@ import (
 	"net"
 	"time"
 
+	"github.com/dgraph-io/badger"
 	kts "github.com/kooksee/srelay/types"
 	knet "github.com/kooksee/srelay/utils/net"
 )
 
 func NewSP2p() *SP2p {
 	p2p := &SP2p{
-		nodeBackupT: time.NewTimer(10 * time.Minute),
-		txC:         make(chan *kts.KMsg, 2000),
+		nodeBackupTick: time.NewTicker(10 * time.Minute),
+		pingTick:       time.NewTicker(10 * time.Minute),
+		findNodeTick:   time.NewTicker(1 * time.Hour),
+		txC:            make(chan *kts.KMsg, 2000),
 	}
 	tab := newTable(PubkeyID(&p2p.priV.PublicKey), p2p.localAddr)
 	p2p.tab = tab
 
+	go p2p.tickHandler()
 	return p2p
 }
 
 type SP2p struct {
 	tab *Table
 
-	// 节点列表备份
-	nodeBackupT *time.Timer
-	priV        *ecdsa.PrivateKey
-	txC         chan *kts.KMsg
-	conn        knet.Conn
-	localAddr   *net.UDPAddr
+	// 节点备份
+	nodeBackupTick *time.Ticker
+	// 节点ping
+	pingTick *time.Ticker
+	// 节点查询
+	findNodeTick *time.Ticker
+
+	priV      *ecdsa.PrivateKey
+	txC       chan *kts.KMsg
+	conn      knet.Conn
+	localAddr *net.UDPAddr
+}
+
+func (s *SP2p) LoadSeeds(seeds []string) error {
+	return cfg.Db.Update(func(txn *badger.Txn) error {
+		k := []byte(cfg.NodesBackupKey)
+		iter := txn.NewIterator(badger.DefaultIteratorOptions)
+		for iter.Seek(k); ; iter.Next() {
+			if !iter.ValidForPrefix(k) {
+				break
+			}
+
+			val, err := iter.Item().Value()
+			if err != nil {
+				logger.Error(err.Error())
+				continue
+			}
+
+			seeds = append(seeds, string(val))
+		}
+
+		for _, rn := range seeds {
+			n := MustParseNode(rn)
+			n.updateAt = time.Now()
+			s.tab.AddNode(n)
+			go s.pingNode(n.addr().String())
+		}
+
+		// 节点启动的时候如果发现节点数量少,就去请求其他节点
+		if s.tab.Size() < 3000 {
+			// 每一个域选取一个节点
+			for _, b := range s.tab.buckets {
+				go s.findNode(b.Random().addr().String(), 8)
+			}
+		}
+
+		return nil
+	})
+}
+
+func (s *SP2p) dumpSeeds() {
+	err := cfg.Db.Update(func(txn *badger.Txn) error {
+		for _, n := range s.tab.GetAllNodes() {
+			k := append([]byte(cfg.NodesBackupKey), n.ID.Bytes()...)
+			if err := txn.Set(k, []byte(n.String())); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Error(err.Error())
+	}
+}
+
+func (s *SP2p) tickHandler() {
+	for {
+		select {
+		case <-s.nodeBackupTick.C:
+			go s.dumpSeeds()
+		case <-s.findNodeTick.C:
+			for _, b := range s.tab.buckets {
+				go s.findNode(b.Random().addr().String(), 8)
+			}
+		case <-s.pingTick.C:
+			for _, n := range s.tab.FindRandomNodes(20) {
+				go s.pingNode(n.addr().String())
+			}
+		}
+	}
 }
 
 func (s *SP2p) Start() {
@@ -53,14 +131,6 @@ func (s *SP2p) Start() {
 }
 
 func (s *SP2p) Write(msg *kts.KMsg) error {
-	return s.write(msg)
-}
-
-func (s *SP2p) WritePartition(msg *kts.KMsg) error {
-	return s.write(msg)
-}
-
-func (s *SP2p) WriteBroadcast(msg *kts.KMsg) error {
 	return s.write(msg)
 }
 
@@ -130,7 +200,7 @@ func (s *SP2p) handler() {
 }
 
 func (s *SP2p) accept() {
-	s.conn.SetReadDeadline(time.Now().Add(connReadTimeout))
+	s.conn.SetReadDeadline(time.Now().Add(cfg.ConnReadTimeout))
 	read := bufio.NewReader(s.conn)
 	for {
 		message, err := read.ReadBytes(kts.Delim)

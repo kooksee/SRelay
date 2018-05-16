@@ -3,12 +3,11 @@ package sp2p
 import (
 	"time"
 
-	"github.com/kooksee/srelay/config"
+	"github.com/dgraph-io/badger"
+	"github.com/kooksee/uspnet/common"
 )
 
 type KConfig struct {
-	*config.Config
-
 	// 接收数据的最大缓存区
 	MaxBufLen int
 
@@ -54,29 +53,54 @@ type KConfig struct {
 	// K桶的数量
 	NBuckets int
 
+	ConnReadTimeout  time.Duration
+	ConnWriteTimeout time.Duration
+
 	// version
 	Version string
+
+	Crypt   string
+	Key     string
+	Salt    string
+	Host    string
+	KcpPort int
+
+	Db *badger.DB
+
+	NodesBackupKey string
+
+	DELIMITER string
 }
 
 func DefaultKConfig() *KConfig {
 	return &KConfig{
-		MaxBufLen:           MAX_BUF_LEN,
-		NtpFailureThreshold: ntpFailureThreshold,
-		NtpWarningCooldown:  ntpWarningCooldown,
-		NtpPool:             ntpPool,
-		NtpChecks:           ntpChecks,
-		BucketSize:          bucketSize,
-		RespTimeout:         respTimeout,
-		SendTimeout:         sendTimeout,
-		Expiration:          expiration,
-		DriftThreshold:      driftThreshold,
-		NodesBackupTime:     nodesBackupTime,
-		NodeIDBits:          NodeIDBits,
-		Alpha:               alpha,
-		NodeResponseNumber:  responseNodeNumber,
-		NodeBroadcastNumber: broadcastNodeNumber,
+		MaxBufLen:           1024 * 16,
+		NtpFailureThreshold: 32,
+		NtpWarningCooldown:  10 * time.Minute,
+		NtpPool:             "pool.ntp.org",
+		NtpChecks:           3,
+		BucketSize:          16,
+		RespTimeout:         500 * time.Millisecond,
+		SendTimeout:         500 * time.Millisecond,
+		Expiration:          20 * time.Second,
+		DriftThreshold:      10 * time.Second,
+		NodeIDBits:          512,
+		Alpha:               3,
+		NodeResponseNumber:  5,
+		NodeBroadcastNumber: 16,
 		NodePartitionNumber: 8,
-		HashBits:            hashBits,
-		NBuckets:            nBuckets,
+		HashBits:            len(common.Hash{}) * 8,
+		NBuckets:            len(common.Hash{})*8 + 1,
+
+		ConnReadTimeout:  5 * time.Second,
+		ConnWriteTimeout: 5 * time.Second,
+
+		Crypt:          "aes-128",
+		Key:            "hello",
+		Salt:           "hello",
+		Host:           "0.0.0.0",
+		KcpPort:        8080,
+		NodesBackupKey: "nbk:",
+		DELIMITER:      "\r\n",
 	}
 }

@@ -21,7 +21,6 @@ type Config struct {
 	Host     string
 	KcpPort  int
 	HttpPort int
-	UdpPort  int
 
 	Cache *cache.Cache
 }

@@ -1,8 +1,6 @@
 package sp2p
 
 import (
-	"net"
-
 	"github.com/kooksee/srelay/types"
 	"github.com/kooksee/uspnet/common"
 )
@@ -22,19 +20,15 @@ func findNode(p *SP2p, msg *types.KMsg) {
 		logger.Error(err.Error())
 		return
 	}
+
+	if node := NodeFromKMsg(msg); node != nil {
+		p.tab.UpdateNode(node)
+	}
 }
 func ping(p *SP2p, msg *types.KMsg) {
-	nid, err := HexID(msg.FID)
-	if err != nil {
-		logger.Error(err.Error())
-		return
+	if node := NodeFromKMsg(msg); node != nil {
+		p.tab.UpdateNode(node)
 	}
-	addr, err := net.ResolveUDPAddr("udp", msg.FAddr)
-	if err != nil {
-		logger.Error(err.Error())
-		return
-	}
-	p.tab.UpdateNode(NewNode(nid, addr.IP, uint16(addr.Port)))
 }
 
 func init() {

@@ -1,4 +1,4 @@
-package tserver
+package server
 
 import (
 	"bufio"
@@ -18,11 +18,10 @@ type KcpServer struct {
 	clients   *cache.Cache
 	l         *knet.KcpListener
 	usManager *UdpServerManager
-
 	writeChan chan *types.KMsg
 }
 
-func NewKcpServer() *KcpServer {
+func GetKcpServer() *KcpServer {
 	ksOnce.Do(func() {
 		ksInstance = &KcpServer{
 			clients:   cfg.Cache,
@@ -37,7 +36,7 @@ func NewKcpServer() *KcpServer {
 func (ks *KcpServer) handleWriteLoop() {
 	for {
 		tx := <-ks.writeChan
-		// 检查缓存中是否存在
+		// 检查缓存中是否存在,存在跳过
 		id, _ := cfg.Cache.Get(tx.ID)
 		if id != nil {
 			continue
@@ -54,8 +53,7 @@ func (ks *KcpServer) handleWriteLoop() {
 			continue
 		}
 		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-		_, err := conn.Write(tx.Dumps())
-		if err != nil {
+		if _, err := conn.Write(tx.Dumps()); err != nil {
 			logger.Error(err.Error())
 			continue
 		}
@@ -69,13 +67,14 @@ func (ks *KcpServer) Send(tx *types.KMsg) {
 	ks.writeChan <- tx
 }
 
-func (ks *KcpServer) Listen() (err error) {
+func (ks *KcpServer) Listen() error {
 	block, err := knet.GetCrypt(cfg.Crypt, cfg.Key, cfg.Salt)
 	if err != nil {
 		panic(err.Error())
 	}
 	ks.l, err = knet.ListenKcp(cfg.Host, cfg.KcpPort, block)
-	return
+	go ks.accept()
+	return err
 }
 
 func (ks *KcpServer) onPing(tx *types.KMsg, conn knet.Conn) {
@@ -126,16 +125,14 @@ func (ks *KcpServer) onHandle(conn knet.Conn) {
 	}
 }
 
-func (ks *KcpServer) Start() {
-	go func() {
-		for {
-			c, err := ks.l.Accept()
-			if err != nil {
-				logger.Error("kcp conn error ", "err", err)
-				continue
-			}
-			c.SetReadDeadline(time.Now().Add(connReadTimeout))
-			go ks.onHandle(c)
+func (ks *KcpServer) accept() {
+	for {
+		c, err := ks.l.Accept()
+		if err != nil {
+			logger.Error("kcp conn error ", "err", err)
+			continue
 		}
-	}()
+		c.SetReadDeadline(time.Now().Add(connReadTimeout))
+		go ks.onHandle(c)
+	}
 }

@@ -11,20 +11,12 @@ import (
 	"github.com/kooksee/uspnet/common"
 )
 
-const (
-	alpha               = 3 // Kademlia concurrency factor
-	responseNodeNumber  = 5
-	broadcastNodeNumber = 16
-	hashBits            = len(common.Hash{}) * 8
-	nBuckets            = hashBits + 1 // Number of buckets
-)
-
 type Table struct {
 	ITable
 
 	mutex sync.Mutex // protects buckets, their content, and nursery
 
-	buckets  [nBuckets]*bucket
+	buckets  [cfg.NBuckets]*bucket
 	count    int   //total number of nodes
 	selfNode *Node //info of local node
 }
@@ -36,7 +28,7 @@ func newTable(id NodeID, addr *net.UDPAddr) *Table {
 		selfNode: NewNode(id, addr.IP, uint16(addr.Port)),
 	}
 
-	for i := 0; i < nBuckets; i++ {
+	for i := 0; i < cfg.NBuckets; i++ {
 		table.buckets[i] = newBuckets()
 	}
 
@@ -45,6 +37,24 @@ func newTable(id NodeID, addr *net.UDPAddr) *Table {
 
 func (t *Table) GetNode() *Node {
 	return t.selfNode
+}
+
+func (t *Table) GetAllNodes() []*Node {
+	nodes := make([]*Node, 0)
+	for _, b := range t.buckets {
+		b.peers.Each(func(index int, value interface{}) {
+			nodes = append(nodes, value.(*Node))
+		})
+	}
+	return nodes
+}
+
+func (t *Table) GetRawNodes() []string {
+	nodes := make([]string, 0)
+	for _, n := range t.GetAllNodes() {
+		nodes = append(nodes, n.String())
+	}
+	return nodes
 }
 
 func (t *Table) AddNode(node *Node) {
@@ -101,7 +111,7 @@ func (t *Table) FindRandomNodes(n int) []*Node {
 // findNodeWithTarget find nodes that distance of target is less than measure with target
 func (t *Table) FindNodeWithTarget(target common.Hash, measure common.Hash) []*Node {
 	minDis := make([]*Node, 0)
-	for _, n := range t.FindMinDisNodes(target, responseNodeNumber) {
+	for _, n := range t.FindMinDisNodes(target, cfg.NodeResponseNumber) {
 		if distCmp(target, t.selfNode.sha, n.sha) > distCmp(measure, t.selfNode.sha, n.sha) {
 			//log.Debug("add node: %s", hexutil.BytesToHex(e.ID.Bytes()))
 			minDis = append(minDis, n)
@@ -111,18 +121,6 @@ func (t *Table) FindNodeWithTarget(target common.Hash, measure common.Hash) []*N
 	}
 
 	return minDis
-}
-
-func (t *Table) GetTableList() []string {
-
-	nodes := make([]string, 0)
-	for _, b := range t.buckets {
-		b.peers.Each(func(_ int, value interface{}) {
-			nodes = append(nodes, value.(*Node).String())
-		})
-	}
-
-	return nodes
 }
 
 func (t *Table) DeleteNode(target common.Hash) {

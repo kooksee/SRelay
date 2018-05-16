@@ -28,11 +28,6 @@ import (
 	"github.com/kooksee/uspnet/log"
 )
 
-const (
-	ntpPool   = "pool.ntp.org" // ntpPool is the NTP server to query for the current time
-	ntpChecks = 3              // Number of measurements to do against the NTP server
-)
-
 // durationSlice attaches the methods of sort.Interface to []time.Duration,
 // sorting in increasing order.
 type durationSlice []time.Duration
@@ -44,11 +39,11 @@ func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 // checkClockDrift queries an NTP server for clock drifts and warns the user if
 // one large enough is detected.
 func checkClockDrift() {
-	drift, err := sntpDrift(ntpChecks)
+	drift, err := sntpDrift(cfg.NtpChecks)
 	if err != nil {
 		return
 	}
-	if drift < -driftThreshold || drift > driftThreshold {
+	if drift < -cfg.DriftThreshold || drift > cfg.DriftThreshold{
 		log.Warn(fmt.Sprintf("System clock seems off by %v, which can prevent network connectivity", drift))
 		log.Warn("Please enable network time synchronisation in system settings.")
 	} else {
@@ -64,7 +59,7 @@ func checkClockDrift() {
 // ones to be able to discard the two extremes as outliers.
 func sntpDrift(measurements int) (time.Duration, error) {
 	// Resolve the address of the NTP server
-	addr, err := net.ResolveUDPAddr("udp", ntpPool+":123")
+	addr, err := net.ResolveUDPAddr("udp", cfg.NtpPool+":123")
 	if err != nil {
 		return 0, err
 	}
@@ -89,7 +84,7 @@ func sntpDrift(measurements int) (time.Duration, error) {
 			return 0, err
 		}
 		// Retrieve the reply and calculate the elapsed time
-		conn.SetDeadline(time.Now().Add(5 * time.Second))
+		conn.SetDeadline(time.Now().Add(cfg.ConnReadTimeout))
 
 		reply := make([]byte, 48)
 		if _, err = conn.Read(reply); err != nil {

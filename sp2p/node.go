@@ -19,8 +19,6 @@ import (
 	"github.com/kooksee/uspnet/crypto"
 )
 
-const NodeIDBits = 512
-
 // Node represents a host on the network.
 // The fields of Node may not be modified.
 type Node struct {
@@ -203,7 +201,7 @@ func (n *Node) UnmarshalText(text []byte) error {
 
 // NodeID is a unique identifier for each node.
 // The node identifier is a marshaled elliptic curve public key.
-type NodeID [NodeIDBits / 8]byte
+type NodeID [cfg.NodeIDBits / 8]byte
 
 // Bytes returns a byte slice representation of the NodeID
 func (n NodeID) Bytes() []byte {

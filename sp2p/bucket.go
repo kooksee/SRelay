@@ -3,14 +3,11 @@ package sp2p
 import (
 	"time"
 
+	"github.com/dgraph-io/badger"
 	"github.com/emirpasic/gods/lists/arraylist"
 	"github.com/kooksee/uspnet/common"
 	"github.com/kooksee/uspnet/common/hexutil"
 	"github.com/kooksee/uspnet/log"
-)
-
-const (
-	bucketSize = 16 // Kademlia bucket size
 )
 
 type bucket struct {
@@ -39,16 +36,33 @@ func (b *bucket) addNodes(nodes ... *Node) {
 
 	// 把最活跃的放到最前面,然后移除最不活跃的
 	b.peers.Sort(func(a, b interface{}) int { return int(b.(*Node).updateAt.Sub(a.(*Node).updateAt)) })
-	if b.peers.Size() > bucketSize {
-		for i := bucketSize; ; i++ {
-			b.peers.Remove(i)
-		}
+	size := b.peers.Size()
+	if size > cfg.BucketSize {
+		cfg.Db.Update(func(txn *badger.Txn) error {
+			for i := cfg.BucketSize; i < size; i++ {
+				val, e := b.peers.Get(i)
+				if !e {
+					continue
+				}
+				b.peers.Remove(i)
+				if err := txn.Delete(append([]byte(cfg.NodesBackupKey), val.(*Node).ID.Bytes()...)); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
 	}
 }
 
 // findNode check if the bucket already have this node, if so, return its index, otherwise, return -1
 func (b *bucket) findNode(node *Node) int {
 	return b.peers.IndexOf(node)
+}
+
+func (b *bucket) Random() *Node {
+	a := int(randUint(uint32(b.size())))
+	val, _ := b.peers.Get(a)
+	return val.(*Node)
 }
 
 func (b *bucket) getLast(n int) []*Node {

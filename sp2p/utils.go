@@ -1,13 +1,16 @@
 package sp2p
 
 import (
-	"fmt"
-	"time"
 	"bytes"
-	"sync"
+	"fmt"
 	"math/rand"
-	"github.com/kooksee/uspnet/crypto/secp256k1"
+	"net"
+	"sync"
+	"time"
+
+	"github.com/kooksee/srelay/types"
 	"github.com/kooksee/uspnet/common"
+	"github.com/kooksee/uspnet/crypto/secp256k1"
 	"github.com/satori/go.uuid"
 )
 
@@ -137,4 +140,18 @@ func randUint(max uint32) uint32 {
 	}
 	rand.Seed(time.Now().Unix())
 	return rand.Uint32() % max
+}
+
+func NodeFromKMsg(msg *types.KMsg) *Node {
+	nid, err := HexID(msg.FID)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil
+	}
+	addr, err := net.ResolveUDPAddr("udp", msg.FAddr)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil
+	}
+	return NewNode(nid, addr.IP, uint16(addr.Port))
 }

@@ -1,4 +1,4 @@
-package tserver
+package server
 
 import (
 	"time"
@@ -11,7 +11,7 @@ import (
 var (
 	cfg    *config.Config
 	json   = jsoniter.ConfigCompatibleWithStandardLibrary
-	logger = log.New("package", "tserver")
+	logger = log.New("package", "server")
 )
 
 const (

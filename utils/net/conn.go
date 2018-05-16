@@ -109,7 +109,7 @@ func ConnectServerByHttpProxy(httpProxy string, protocol string, addr string) (c
 		return ConnectTcpServerByHttpProxy(httpProxy, addr)
 	case "kcp":
 		// http proxy is not supported for kcp
-		return ConnectServer(protocol, addr)
+		return ConnectServer(protocol, addr, nil)
 	default:
 		return nil, fmt.Errorf("unsupport protocol: %s", protocol)
 	}

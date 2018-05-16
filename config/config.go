@@ -15,7 +15,6 @@ func GetCfg() *Config {
 			Host:     "0.0.0.0",
 			KcpPort:  8080,
 			HttpPort: 8081,
-			UdpPort:  8082,
 			Debug:    true,
 			LogLevel: "info",
 			Cache:    cache.New(time.Minute, 5*time.Minute),
