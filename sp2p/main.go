@@ -3,42 +3,29 @@ package sp2p
 import (
 	"bufio"
 	"bytes"
-	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"net"
 	"time"
 
 	"github.com/dgraph-io/badger"
+	"github.com/kooksee/srelay/protocol"
 	kts "github.com/kooksee/srelay/types"
 	knet "github.com/kooksee/srelay/utils/net"
 )
 
 func NewSP2p() *SP2p {
 	p2p := &SP2p{
-		nodeBackupTick: time.NewTicker(10 * time.Minute),
-		pingTick:       time.NewTicker(10 * time.Minute),
-		findNodeTick:   time.NewTicker(1 * time.Hour),
-		txC:            make(chan *kts.KMsg, 2000),
+		txC: make(chan *kts.KMsg, 2000),
 	}
-	tab := newTable(PubkeyID(&p2p.priV.PublicKey), p2p.localAddr)
+	tab := newTable(PubkeyID(&cfg.PriV.PublicKey), p2p.localAddr)
 	p2p.tab = tab
-
-	go p2p.tickHandler()
 	return p2p
 }
 
 type SP2p struct {
-	tab *Table
-
-	// 节点备份
-	nodeBackupTick *time.Ticker
-	// 节点ping
-	pingTick *time.Ticker
-	// 节点查询
-	findNodeTick *time.Ticker
-
-	priV      *ecdsa.PrivateKey
+	IP2p
+	tab       *Table
 	txC       chan *kts.KMsg
 	conn      knet.Conn
 	localAddr *net.UDPAddr
@@ -99,13 +86,13 @@ func (s *SP2p) dumpSeeds() {
 func (s *SP2p) tickHandler() {
 	for {
 		select {
-		case <-s.nodeBackupTick.C:
+		case <-cfg.NodeBackupTick.C:
 			go s.dumpSeeds()
-		case <-s.findNodeTick.C:
+		case <-cfg.FindNodeTick.C:
 			for _, b := range s.tab.buckets {
 				go s.findNode(b.Random().addr().String(), 8)
 			}
-		case <-s.pingTick.C:
+		case <-cfg.PingTick.C:
 			for _, n := range s.tab.FindRandomNodes(20) {
 				go s.pingNode(n.addr().String())
 			}
@@ -113,7 +100,7 @@ func (s *SP2p) tickHandler() {
 	}
 }
 
-func (s *SP2p) Start() {
+func (s *SP2p) StartP2p() {
 	block, err := knet.GetCrypt(cfg.Crypt, cfg.Key, cfg.Salt)
 	if err != nil {
 		panic(err.Error())
@@ -127,6 +114,7 @@ func (s *SP2p) Start() {
 		s.handlerUdpPort()
 		go s.handler()
 		go s.ping()
+		go s.tickHandler()
 	}
 }
 
@@ -228,11 +216,15 @@ func (s *SP2p) pingNode(taddr string) error {
 	return s.write(msg)
 }
 
+func (s *SP2p) GetTable() *Table {
+	return s.tab
+}
+
 func (s *SP2p) findNode(taddr string, n int) error {
 	msg := &kts.KMsg{
 		Event: "findNode",
 		TAddr: taddr,
-		Data:  kts.FindNodeReq{NID: s.tab.selfNode.ID.String(), N: n},
+		Data:  protocol.FindNodeReq{NID: s.tab.selfNode.ID.String(), N: n},
 	}
 	return s.write(msg)
 }

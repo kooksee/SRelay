@@ -23,8 +23,8 @@ func newBuckets() *bucket {
 func (b *bucket) updateNodes(nodes ... *Node) {
 	for _, n := range nodes {
 		n.updateAt = time.Now()
+		b.addNodes(n)
 	}
-	b.addNodes(nodes...)
 }
 
 // addNode add node to bucket, if bucket is full, will remove an old one

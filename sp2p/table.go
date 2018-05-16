@@ -17,14 +17,12 @@ type Table struct {
 	mutex sync.Mutex // protects buckets, their content, and nursery
 
 	buckets  [cfg.NBuckets]*bucket
-	count    int   //total number of nodes
 	selfNode *Node //info of local node
 }
 
 func newTable(id NodeID, addr *net.UDPAddr) *Table {
 
 	table := &Table{
-		count:    0,
 		selfNode: NewNode(id, addr.IP, uint16(addr.Port)),
 	}
 
@@ -58,18 +56,19 @@ func (t *Table) GetRawNodes() []string {
 }
 
 func (t *Table) AddNode(node *Node) {
-	dis := logdist(t.selfNode.sha, node.sha)
-	t.buckets[dis].addNodes(node)
-	t.count++
+	t.buckets[logdist(t.selfNode.sha, node.sha)].addNodes(node)
 }
 
 func (t *Table) UpdateNode(node *Node) {
-	dis := logdist(t.selfNode.sha, node.sha)
-	t.buckets[dis].updateNodes(node)
+	t.buckets[logdist(t.selfNode.sha, node.sha)].updateNodes(node)
 }
 
 func (t *Table) Size() int {
-	return t.count
+	n := 0
+	for _, b := range t.buckets {
+		n += b.peers.Size()
+	}
+	return n
 }
 
 // ReadRandomNodes fills the given slice with random nodes from the
@@ -79,15 +78,17 @@ func (t *Table) FindRandomNodes(n int) []*Node {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
+	if n > cfg.NBuckets {
+		n = cfg.NBuckets
+	} else if n < 1 {
+		n = 5
+	}
+
 	nodes := make([]*Node, 0)
 	for _, b := range t.buckets {
 		b.peers.Each(func(_ int, value interface{}) {
 			nodes = append(nodes, value.(*Node))
 		})
-	}
-
-	if len(nodes) == 0 {
-		return nil
 	}
 
 	if len(nodes) < n {
@@ -112,24 +113,29 @@ func (t *Table) FindRandomNodes(n int) []*Node {
 func (t *Table) FindNodeWithTarget(target common.Hash, measure common.Hash) []*Node {
 	minDis := make([]*Node, 0)
 	for _, n := range t.FindMinDisNodes(target, cfg.NodeResponseNumber) {
-		if distCmp(target, t.selfNode.sha, n.sha) > distCmp(measure, t.selfNode.sha, n.sha) {
-			//log.Debug("add node: %s", hexutil.BytesToHex(e.ID.Bytes()))
+		if distCmp(target, n.sha, measure) < 0 {
 			minDis = append(minDis, n)
-		} else {
-			//log.Debug("skip node:%s", hexutil.BytesToHex(e.ID.Bytes()))
 		}
 	}
 
 	return minDis
 }
 
+func (t *Table) FindNodeWithTargetBySelf(target common.Hash) []*Node {
+	return t.FindNodeWithTarget(target, t.selfNode.sha)
+}
+
 func (t *Table) DeleteNode(target common.Hash) {
-	dis := logdist(t.selfNode.sha, target)
-	t.buckets[dis].deleteNodes(target)
-	t.count--
+	t.buckets[logdist(t.selfNode.sha, target)].deleteNodes(target)
 }
 
 func (t *Table) FindMinDisNodes(target common.Hash, number int) []*Node {
+	if number > cfg.NBuckets {
+		number = cfg.NBuckets
+	} else if number < 1 {
+		number = 5
+	}
+
 	result := &nodesByDistance{
 		target:   target,
 		maxElems: number,
@@ -140,10 +146,6 @@ func (t *Table) FindMinDisNodes(target common.Hash, number int) []*Node {
 		b.peers.Each(func(_ int, value interface{}) {
 			result.push(value.(*Node))
 		})
-	}
-
-	if len(result.entries) == 0 {
-		return nil
 	}
 
 	return result.entries

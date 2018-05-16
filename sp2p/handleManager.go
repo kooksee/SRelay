@@ -1,4 +1,4 @@
-package handlers
+package sp2p
 
 import (
 	"errors"
@@ -8,7 +8,6 @@ import (
 
 var (
 	hmOnce sync.Once
-	hm     *HandleManager
 )
 
 func GetHManager() *HandleManager {
@@ -24,7 +23,7 @@ type HandleManager struct {
 
 func (h *HandleManager) Registry(name string, handler IHandler) error {
 	if h.Contain(name) {
-		return errors.New(fmt.Sprintf("%s已经存在", name))
+		return errors.New(fmt.Sprintf("%s existed", name))
 	}
 	h.hmap[name] = handler
 	return nil

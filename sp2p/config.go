@@ -1,6 +1,7 @@
 package sp2p
 
 import (
+	"crypto/ecdsa"
 	"time"
 
 	"github.com/dgraph-io/badger"
@@ -34,7 +35,9 @@ type KConfig struct {
 	DriftThreshold time.Duration
 
 	// 节点列表备份时间
-	NodesBackupTime time.Duration
+	NodeBackupTick *time.Ticker
+	PingTick       *time.Ticker
+	FindNodeTick   *time.Ticker
 
 	// 节点长度
 	NodeIDBits int
@@ -70,6 +73,8 @@ type KConfig struct {
 	NodesBackupKey string
 
 	DELIMITER string
+
+	PriV *ecdsa.PrivateKey
 }
 
 func DefaultKConfig() *KConfig {
@@ -86,7 +91,7 @@ func DefaultKConfig() *KConfig {
 		DriftThreshold:      10 * time.Second,
 		NodeIDBits:          512,
 		Alpha:               3,
-		NodeResponseNumber:  5,
+		NodeResponseNumber:  8,
 		NodeBroadcastNumber: 16,
 		NodePartitionNumber: 8,
 		HashBits:            len(common.Hash{}) * 8,
@@ -102,5 +107,9 @@ func DefaultKConfig() *KConfig {
 		KcpPort:        8080,
 		NodesBackupKey: "nbk:",
 		DELIMITER:      "\r\n",
+
+		NodeBackupTick: time.NewTicker(10 * time.Minute),
+		PingTick:       time.NewTicker(10 * time.Minute),
+		FindNodeTick:   time.NewTicker(1 * time.Hour),
 	}
 }

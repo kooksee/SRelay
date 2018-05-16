@@ -1,8 +1,17 @@
 package sp2p
 
 import (
+	"github.com/kooksee/srelay/types"
 	"github.com/kooksee/uspnet/common"
 )
+
+type IHandler func(*SP2p, *types.KMsg)
+
+type IP2p interface {
+	LoadSeeds([]string) error
+	Start()
+	Write(*types.KMsg) error
+}
 
 type ITable interface {
 	// 路由表大小

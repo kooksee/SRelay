@@ -142,16 +142,14 @@ func randUint(max uint32) uint32 {
 	return rand.Uint32() % max
 }
 
-func NodeFromKMsg(msg *types.KMsg) *Node {
+func NodeFromKMsg(msg *types.KMsg) (*Node, error) {
 	nid, err := HexID(msg.FID)
 	if err != nil {
-		logger.Error(err.Error())
-		return nil
+		return nil, err
 	}
 	addr, err := net.ResolveUDPAddr("udp", msg.FAddr)
 	if err != nil {
-		logger.Error(err.Error())
-		return nil
+		return nil, err
 	}
-	return NewNode(nid, addr.IP, uint16(addr.Port))
+	return NewNode(nid, addr.IP, uint16(addr.Port)), nil
 }
