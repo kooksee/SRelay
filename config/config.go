@@ -9,15 +9,10 @@ import (
 func GetCfg() *Config {
 	once.Do(func() {
 		instance = &Config{
-			Crypt:    "aes-128",
-			Key:      "hello",
-			Salt:     "hello",
-			Host:     "0.0.0.0",
-			KcpPort:  8080,
-			HttpPort: 8081,
-			Debug:    true,
-			LogLevel: "info",
-			Cache:    cache.New(time.Minute, 5*time.Minute),
+			Host:  "0.0.0.0",
+			Port:  8081,
+			Debug: true,
+			Cache: cache.New(time.Minute*5, 10*time.Minute),
 		}
 	})
 	return instance

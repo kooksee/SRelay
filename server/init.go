@@ -1,23 +1,19 @@
 package server
 
 import (
-	"time"
-
+	"github.com/inconshreveable/log15"
 	"github.com/json-iterator/go"
-	"github.com/kooksee/log"
 	"github.com/kooksee/srelay/config"
 )
 
 var (
 	cfg    *config.Config
 	json   = jsoniter.ConfigCompatibleWithStandardLibrary
-	logger = log.New("package", "server")
+	logger log15.Logger
 )
 
-const (
-	connReadTimeout = 10 * time.Second
-)
-
-func SetCfg(cfg1 *config.Config) {
-	cfg = cfg1
+func Init() {
+	cfg = config.GetCfg()
+	clientsCache = cfg.Cache
+	logger = config.Log().New("package", "server")
 }

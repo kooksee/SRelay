@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 
-	"github.com/kooksee/log"
 	"github.com/kooksee/srelay/config"
 	"github.com/kooksee/srelay/server"
 )
@@ -12,24 +10,26 @@ import (
 const Version = "1.0"
 
 func main() {
-	
+
 	cfg := config.GetCfg()
 	flag.BoolVar(&cfg.Debug, "debug", cfg.Debug, "debug mode")
-	flag.StringVar(&cfg.Crypt, "crypt", cfg.Crypt, "crypt")
-	flag.StringVar(&cfg.Key, "key", cfg.Key, "key")
-	flag.StringVar(&cfg.Salt, "salt", cfg.Salt, "salt")
-	flag.StringVar(&cfg.LogLevel, "level", cfg.LogLevel, "log level")
 	flag.StringVar(&cfg.Host, "host", cfg.Host, "app host")
-	flag.IntVar(&cfg.KcpPort, "kcp", cfg.KcpPort, "kcp port")
-	flag.IntVar(&cfg.HttpPort, "http", cfg.HttpPort, "http port")
+	flag.Int64Var(&cfg.Port, "kcp", cfg.Port, "app port")
 	flag.Parse()
 
-	d, _ := json.Marshal(cfg)
-	log.Info(string(d))
+	cfg.InitLog()
 
-	server.SetCfg(cfg)
-	server.GetKcpServer().Listen()
-	server.RunHttpServer()
+	server.Init()
+
+	us := &server.UdpServer{}
+	if err := us.Listen(cfg.Port); err != nil {
+		panic(err.Error())
+	}
+
+	ts := &server.TcpServer{}
+	if err := ts.Listen(cfg.Port); err != nil {
+		panic(err.Error())
+	}
 
 	select {}
 }

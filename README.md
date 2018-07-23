@@ -46,6 +46,8 @@ task dev
 客户端通过用户名和密码登陆之后，
 并通过接口向服务端发布自己的端口(网络模式,端口号),失败后重试
 
+https://github.com/olahol/melody/tree/v1
+https://github.com/gorilla/websocket
 
 ## docs
 

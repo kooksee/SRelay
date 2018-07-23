@@ -1,10 +1,25 @@
 package types
 
-import "github.com/json-iterator/go"
+import (
+	"github.com/json-iterator/go"
+)
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-type ClientPort struct {
-	Port     int64  `json:"port,omitempty"`
-	Protocol string `json:"proto,omitempty"`
+func BytesTrimSpace(bs []byte) []byte {
+	for i, b := range bs {
+		if b != 0 {
+			bs = bs[i:]
+			break
+		}
+	}
+
+	for i, b := range bs {
+		if b == 0 {
+			bs = bs[:i]
+			break
+		}
+	}
+
+	return bs
 }
