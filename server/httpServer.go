@@ -5,39 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/kooksee/srelay/types"
 )
-
-func udpPost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	tx := &types.KMsg{}
-	if err := tx.DecodeFromConn(r.Body); err != nil {
-		logger.Error("Unmarshal error", "err", err)
-		fmt.Fprint(w, types.ResultError(err))
-		return
-	}
-
-	if _, ok := cfg.Cache.Get(tx.Data.(string)); ok {
-		fmt.Fprint(w, types.ResultError(errors.New("该key已经存在")))
-		return
-	}
-
-	addr, err := net.ResolveUDPAddr("udp", tx.FAddr)
-	if err != nil {
-		fmt.Fprint(w, types.ResultError(err))
-		return
-	}
-
-	if err := ksInstance.CreateUdp(addr.Port); err != nil {
-		fmt.Fprint(w, types.ResultError(err))
-		return
-	}
-	cfg.Cache.SetDefault(tx.Data.(string), tx.FAddr)
-	fmt.Fprint(w, types.ResultOk())
-}
 
 func indexPost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	message, err := ioutil.ReadAll(r.Body)
@@ -69,11 +42,12 @@ func indexGet(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 }
 
 func RunHttpServer() {
-	router := httprouter.New()
-	router.POST("/udp", udpPost)
-	router.POST("/:sid", indexPost)
-	router.GET("/:sid", indexGet)
-	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", cfg.Host, cfg.HttpPort), router); err != nil {
-		panic(err)
-	}
+	http.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
+		// 得到端口号以及数据，根据端口号把数据写入对应的app
+		// 得到一个ID，然后再把相应的请求保存到ID中
+
+		port := strings.Trim(req.URL.RawPath, "/")
+		d, _ := ioutil.ReadAll(req.Body)
+		//	 找到port对应的kcp client，然后把数据发送过去
+	})
 }

@@ -2,118 +2,99 @@ package server
 
 import (
 	"bufio"
-	"bytes"
 	"sync"
 	"time"
 
 	"github.com/kooksee/srelay/types"
+	"github.com/kooksee/srelay/utils"
 	knet "github.com/kooksee/srelay/utils/net"
-	"github.com/patrickmn/go-cache"
 )
 
 var ksInstance *KcpServer
 var ksOnce sync.Once
 
 type KcpServer struct {
-	clients   *cache.Cache
-	l         *knet.KcpListener
-	usManager *UdpServerManager
-	writeChan chan *types.KMsg
+	l       *knet.KcpListener
+	udps    map[int]*knet.UdpListener
+	clients map[int]knet.Conn
 }
 
 func GetKcpServer() *KcpServer {
 	ksOnce.Do(func() {
 		ksInstance = &KcpServer{
-			clients:   cfg.Cache,
-			usManager: &UdpServerManager{},
-			writeChan: make(chan *types.KMsg, 3000),
 		}
-		go ksInstance.handleWriteLoop()
 	})
 	return ksInstance
-}
-
-func (ks *KcpServer) handleWriteLoop() {
-	for {
-		tx := <-ks.writeChan
-		// 检查缓存中是否存在,存在跳过
-		id, _ := cfg.Cache.Get(tx.ID)
-		if id != nil {
-			continue
-		}
-
-		cObj, b := ks.clients.Get(tx.TAddr)
-		if !b {
-			logger.Error("sid不存在")
-			continue
-		}
-		conn, ok := cObj.(knet.Conn)
-		if !ok {
-			logger.Error("sid不存在")
-			continue
-		}
-		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-		if _, err := conn.Write(tx.Dumps()); err != nil {
-			logger.Error(err.Error())
-			continue
-		}
-
-		// 执行成功之后先放入缓存
-		cfg.Cache.SetDefault(tx.ID, true)
-	}
-}
-
-func (ks *KcpServer) Send(tx *types.KMsg) {
-	ks.writeChan <- tx
 }
 
 func (ks *KcpServer) Listen() error {
 	block, err := knet.GetCrypt(cfg.Crypt, cfg.Key, cfg.Salt)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
+
 	ks.l, err = knet.ListenKcp(cfg.Host, cfg.KcpPort, block)
-	go ks.accept()
-	return err
-}
-
-func (ks *KcpServer) onPing(tx *types.KMsg, conn knet.Conn) {
-	if v, _ := cfg.Cache.Get(tx.Data.(string)); v != nil {
-		ks.clients.SetDefault(v.(string), conn)
+	if err != nil {
+		return err
 	}
+	go ks.accept()
+	return nil
 }
 
-func (ks *KcpServer) onReply(tx *types.KMsg) {
-	ks.clients.SetDefault(tx.ID, tx)
-}
+// OpenPort 监听一个信的端口
+func (ks *KcpServer) OpenPort(data []byte) error {
+	clientInfo := new(types.ClientPort)
+	if err := json.Unmarshal(data, &clientInfo); err != nil {
+		return err
+	}
 
-func (ks *KcpServer) CreateUdp(port int) error {
-	return ks.usManager.CreateUdp(port)
+	switch clientInfo.Protocol {
+	case "http", "https":
+	case "udp":
+		usm := &UdpServerManager{}
+		if err := usm.CreateUdp(int(clientInfo.Port)); err != nil {
+			return err
+		}
+	}
+
+	// 检查端口是否存在
+
+	return nil
 }
 
 func (ks *KcpServer) onHandle(conn knet.Conn) {
-	read := bufio.NewReader(conn)
 	for {
+		conn.LocalAddr().String()
+
+		read := bufio.NewReader(conn)
 		message, err := read.ReadBytes(types.Delim)
 		if err != nil {
-			logger.Info("kcp message error", "err", err)
+			logger.Info("kcp conn read message error", "err", err)
 			break
 		}
-		message = bytes.TrimSpace(message)
+
+		message = utils.BytesTrimSpace(message)
+		t := message[0]
+		switch t {
+		// 根据类型执行任务
+
+		case 0x1:
+			//   客户端请求打开端口
+			//	 保存客户端的端口映射以及远程地址
+			//	 保存客户端的名称
+
+		case 0x2:
+			//   客户端发送相应数据
+			//   分析得到客户端地址
+			//   根据地址找到连接
+			//   然后把数据发送到未断开的连接上
+			//   如果是http请求的话，那么就通过ID的方式发送给请求方
+			//	 如果是udp请求，那么整个过程都是异步的，不要去等待数据
+			//	 如果是ws请求，那么会有一个链接ID
+			//	 缓存ID以及对应的结果数据
+
+		}
 		logger.Debug("message data", "data", string(message))
-
-		tx := &types.KMsg{}
-		if err := json.Unmarshal(message, tx); err != nil {
-			logger.Error("Unmarshal error", "err", err)
-			continue
-		}
-
-		switch tx.Event {
-		case types.PINGREQ:
-			ks.onPing(tx, conn)
-		default:
-			logger.Warn("message event error", "err", "找不到该event", "event", tx.Event)
-		}
 	}
 }
 
@@ -122,9 +103,10 @@ func (ks *KcpServer) accept() {
 		c, err := ks.l.Accept()
 		if err != nil {
 			logger.Error("kcp conn error ", "err", err)
+			time.Sleep(time.Second * 3)
 			continue
 		}
-		c.SetReadDeadline(time.Now().Add(connReadTimeout))
+
 		go ks.onHandle(c)
 	}
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"runtime"
 
 	"github.com/kooksee/log"
 	"github.com/kooksee/srelay/config"
@@ -13,10 +12,7 @@ import (
 const Version = "1.0"
 
 func main() {
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	runtime.GC()
-
+	
 	cfg := config.GetCfg()
 	flag.BoolVar(&cfg.Debug, "debug", cfg.Debug, "debug mode")
 	flag.StringVar(&cfg.Crypt, "crypt", cfg.Crypt, "crypt")
@@ -36,5 +32,4 @@ func main() {
 	server.RunHttpServer()
 
 	select {}
-
 }
