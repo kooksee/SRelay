@@ -21,8 +21,7 @@ type KcpServer struct {
 
 func GetKcpServer() *KcpServer {
 	ksOnce.Do(func() {
-		ksInstance = &KcpServer{
-		}
+		ksInstance = &KcpServer{}
 	})
 	return ksInstance
 }
@@ -37,6 +36,7 @@ func (ks *KcpServer) Listen() error {
 	if err != nil {
 		return err
 	}
+
 	go ks.accept()
 	return nil
 }
@@ -64,8 +64,7 @@ func (ks *KcpServer) OpenPort(data []byte) error {
 
 func (ks *KcpServer) onHandle(conn knet.Conn) {
 	for {
-		conn.LocalAddr().String()
-
+		
 		read := bufio.NewReader(conn)
 		message, err := read.ReadBytes(types.Delim)
 		if err != nil {

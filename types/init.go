@@ -8,5 +8,3 @@ type ClientPort struct {
 	Port     int64  `json:"port,omitempty"`
 	Protocol string `json:"proto,omitempty"`
 }
-
-
