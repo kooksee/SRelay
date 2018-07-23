@@ -26,8 +26,8 @@ func runApp(port int64) {
 		panic(err.Error())
 	}
 
-	fmt.Println("listen tcp","0.0.0.0",port)
-	fmt.Println("listen udp","0.0.0.0",port)
+	fmt.Println("listen tcp", "0.0.0.0", port)
+	fmt.Println("listen udp", "0.0.0.0", port)
 }
 
 func main() {
@@ -36,6 +36,7 @@ func main() {
 	flag.BoolVar(&cfg.Debug, "d", cfg.Debug, "debug mode")
 	flag.Int64Var(&cfg.Port, "p", cfg.Port, "app port")
 	flag.BoolVar(&cfg.Nat, "nat", cfg.Nat, "is pnp or pmp")
+	flag.StringVar(&cfg.Whitelist, "wl", cfg.Whitelist, "white list file")
 	flag.Parse()
 	cfg.InitLog()
 
