@@ -1,20 +1,17 @@
-package main
+package client
 
 import (
 	"fmt"
 	"io"
 	"net"
+	"testing"
 	"time"
 
 	"github.com/kooksee/srelay/types"
 	"github.com/satori/go.uuid"
 )
 
-type config struct {
-	addr string
-}
-
-func main() {
+func TestName(t *testing.T) {
 
 	fmt.Println("hello")
 
