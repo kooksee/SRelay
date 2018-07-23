@@ -12,6 +12,7 @@ func GetCfg() *Config {
 			Host:  "0.0.0.0",
 			Port:  8081,
 			Debug: false,
+			Nat:   false,
 			Cache: cache.New(time.Minute*5, 10*time.Minute),
 		}
 	})

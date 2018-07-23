@@ -15,6 +15,7 @@ var (
 
 type Config struct {
 	Debug bool
+	Nat bool
 
 	Host string
 	Port int64
