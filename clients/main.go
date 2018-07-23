@@ -70,7 +70,7 @@ func main() {
 				Data: []byte("ok"),
 			}.Bytes())
 
-			time.Sleep(time.Second * 2)
+			//time.Sleep(time.Microsecond)
 		}
 
 	}()

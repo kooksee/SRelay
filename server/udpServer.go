@@ -82,7 +82,7 @@ func (u *UdpServer) onHandleConn(conn *net.UDPConn) {
 				continue
 			}
 
-			if _, err := con.(*net.TCPConn).Write(m); err != nil {
+			if _, err := con.(*net.TCPConn).Write(append(m, "\n"...)); err != nil {
 				//	写入后端数据失败
 				if _, err := conn.WriteToUDP(types.ErrPeerWrite(errors.New(fmt.Sprintf("peer %s write %s error", c.ID, m[1:]))), addr); err != nil {
 					logger.Error("onHandleConn4", "err", err.Error())

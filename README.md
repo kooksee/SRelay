@@ -10,36 +10,6 @@
 
 ### 请安装task项目管理工具
 
-```shell
-go get -u -v github.com/go-task/task/cmd/task
-```
-
-### 安装依赖
-
-```shell
-task deps
-
-其他依赖请把依赖添加到scripts/deps.sh中
-```
-
-
-
-### Goland作为开发工具配置
-
-    请把当前项目根目录设置为`Project GOPATH`
-
-## 编译
-
-```shell
-task build
-```
-
-## 运行
-```shell
-task dev
-```
-
-
 检测能否打开外网IP port
 如果不能够使用upnp pmp等方式暴露自己的端口，那么就通过中继的方式
 中继服务端通过认证的方式连接

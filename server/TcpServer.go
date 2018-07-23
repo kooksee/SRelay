@@ -33,7 +33,7 @@ func (ks *TcpServer) onHandle(conn net.Conn) {
 		buf := make([]byte, 1024*16)
 		n, err := conn.Read(buf)
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error("conn read error", "err", err.Error())
 
 			if err == io.EOF {
 				break
@@ -43,7 +43,6 @@ func (ks *TcpServer) onHandle(conn net.Conn) {
 			continue
 		}
 
-		logger.Debug(string(buf))
 		messages := kb.Next(buf[:n])
 		if messages == nil {
 			continue
@@ -54,24 +53,18 @@ func (ks *TcpServer) onHandle(conn net.Conn) {
 				continue
 			}
 
-			m = types.BytesTrimSpace(m)
-
 			// 获得address 然后绑定客户端
 			client, err := types.DecodeClient(m)
 			if err != nil {
 				// 回复给客户端数据,json解析失败
-				conn.Write(types.ErrJsonParse(err))
+				if _, err := conn.Write(types.ErrJsonParse(err)); err != nil {
+					logger.Error("tcp onHandle 1", "err", err.Error())
+				}
 				continue
 			}
 
 			// 缓存，如果客户端没有定时确认连接，那么连接就会过时
-
-			if conn==nil{
-				fmt.Println("nil tcp")
-			}
-
 			clientsCache.SetDefault(client.ID, conn)
-
 		}
 	}
 }

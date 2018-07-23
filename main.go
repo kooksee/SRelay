@@ -12,9 +12,8 @@ const Version = "1.0"
 func main() {
 
 	cfg := config.GetCfg()
-	flag.BoolVar(&cfg.Debug, "debug", cfg.Debug, "debug mode")
-	flag.StringVar(&cfg.Host, "host", cfg.Host, "app host")
-	flag.Int64Var(&cfg.Port, "kcp", cfg.Port, "app port")
+	flag.BoolVar(&cfg.Debug, "d", cfg.Debug, "debug mode")
+	flag.Int64Var(&cfg.Port, "p", cfg.Port, "app port")
 	flag.Parse()
 
 	cfg.InitLog()
