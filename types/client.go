@@ -2,18 +2,18 @@ package types
 
 import "fmt"
 
-func DecodeClient(data []byte) (*Client, error) {
-	c := &Client{}
-	return c, json.Unmarshal(data, c)
+func DecodeClient(data []byte) (KMsg, error) {
+	c := KMsg{}
+	return c, json.Unmarshal(data, &c)
 }
 
-type Client struct {
+type KMsg struct {
 	ID   string `json:"id,omitempty"`
 	Addr string `json:"addr,omitempty"`
 	Data []byte `json:"data,omitempty"`
 }
 
-func (c Client) Bytes() []byte {
+func (c KMsg) Bytes() []byte {
 	d, _ := json.Marshal(c)
 	return append(d, "\n"...)
 }
@@ -39,13 +39,6 @@ func ErrPeerNotFound(err error) []byte {
 	return ErrCode{
 		Code: 10001,
 		Msg:  fmt.Sprintf("the peer is nonexistent,%s", err.Error()),
-	}.Bytes()
-}
-
-func ErrType(err error) []byte {
-	return ErrCode{
-		Code: 10001,
-		Msg:  fmt.Sprintf("the type is nonexistent,%s", err.Error()),
 	}.Bytes()
 }
 

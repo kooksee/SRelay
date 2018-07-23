@@ -29,7 +29,7 @@ func main() {
 	}
 
 	Id := uuid.Must(uuid.NewV4()).String()
-	conn.Write(types.Client{ID: Id}.Bytes())
+	conn.Write(types.KMsg{ID: Id}.Bytes())
 
 	go func() {
 
@@ -65,7 +65,7 @@ func main() {
 	go func() {
 
 		for {
-			uconn.Write(types.Client{
+			uconn.Write(types.KMsg{
 				ID:   Id,
 				Data: []byte("ok"),
 			}.Bytes())
