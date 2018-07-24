@@ -2,12 +2,12 @@ package server
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"time"
 
-	"github.com/kataras/iris/core/errors"
 	"github.com/kooksee/srelay/types"
 )
 

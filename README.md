@@ -17,7 +17,3 @@
 
 https://github.com/olahol/melody/tree/v1
 https://github.com/gorilla/websocket
-
-## docs
-
-[协议设计](./docs/design.md)

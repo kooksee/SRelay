@@ -1,12 +1,12 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"time"
 
-	"github.com/kataras/iris/core/errors"
 	"github.com/kooksee/srelay/types"
 	"github.com/libp2p/go-reuseport"
 	"github.com/patrickmn/go-cache"
