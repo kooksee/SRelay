@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/kataras/iris/core/errors"
 	"github.com/kooksee/srelay/types"
 	"github.com/libp2p/go-reuseport"
 	"github.com/patrickmn/go-cache"
@@ -64,7 +65,13 @@ func (ks *TcpServer) onHandle(conn net.Conn) {
 			}
 
 			// 缓存，如果客户端没有定时确认连接，那么连接就会过时
-			clientsCache.SetDefault(client.ID, conn)
+			if cfg.IsWhitelist(client.ID) {
+				clientsCache.SetDefault(client.ID, conn)
+			} else {
+				if _, err := conn.Write(types.ErrNotWhitelist(errors.New(fmt.Sprintf("%s not in white list", client.ID)))); err != nil {
+					logger.Error("tcp onHandle 2", "err", err.Error())
+				}
+			}
 		}
 	}
 }

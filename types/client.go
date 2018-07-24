@@ -44,7 +44,14 @@ func ErrPeerNotFound(err error) []byte {
 
 func ErrPeerWrite(err error) []byte {
 	return ErrCode{
-		Code: 10001,
+		Code: 10002,
 		Msg:  fmt.Sprintf("peer write error,%s", err.Error()),
+	}.Bytes()
+}
+
+func ErrNotWhitelist(err error) []byte {
+	return ErrCode{
+		Code: 10003,
+		Msg:  fmt.Sprintf("not in white list,%s", err.Error()),
 	}.Bytes()
 }
