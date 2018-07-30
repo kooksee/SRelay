@@ -55,7 +55,7 @@ func (ks *TcpServer) onHandle(conn net.Conn) {
 			}
 
 			// 获得address 然后绑定客户端
-			client, err := types.DecodeClient(m)
+			client, err := types.DecodeKClient(m)
 			if err != nil {
 				// 回复给客户端数据,json解析失败
 				if _, err := conn.Write(types.ErrJsonParse(err)); err != nil {
@@ -64,14 +64,23 @@ func (ks *TcpServer) onHandle(conn net.Conn) {
 				continue
 			}
 
+			// 检查用户的签名
+			if !cfg.CheckAddress(client.ID, client.Sign) {
+				if _, err := conn.Write(types.ErrSignError(errors.New(fmt.Sprintf("%s sign error", client.ID)))); err != nil {
+					logger.Error("tcp onHandle 3", "err", err.Error())
+				}
+				continue
+			}
+
 			// 缓存，如果客户端没有定时确认连接，那么连接就会过时
-			if cfg.IsWhitelist(client.TID) {
-				clientsCache.SetDefault(client.TID, conn)
-			} else {
-				if _, err := conn.Write(types.ErrNotWhitelist(errors.New(fmt.Sprintf("%s not in white list", client.TID)))); err != nil {
+			if !cfg.IsWhitelist(client.ID) {
+				if _, err := conn.Write(types.ErrNotWhitelist(errors.New(fmt.Sprintf("%s not in white list", client.ID)))); err != nil {
 					logger.Error("tcp onHandle 2", "err", err.Error())
 				}
+				continue
 			}
+
+			clientsCache.SetDefault(client.ID, conn)
 		}
 	}
 }

@@ -61,7 +61,7 @@ func (u *UdpServer) onHandleConn(conn *net.UDPConn) {
 			}
 
 			//	发送数据给客户端
-			c, err := types.DecodeClient(m)
+			c, err := types.DecodeKMsg(m)
 			if err != nil {
 				logger.Error(string(types.ErrJsonParse(err)), "data", string(m))
 

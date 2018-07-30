@@ -2,7 +2,22 @@ package types
 
 import "fmt"
 
-func DecodeClient(data []byte) (KMsg, error) {
+func DecodeKClient(data []byte) (KClient, error) {
+	c := KClient{}
+	return c, JsonUnmarshal(data, &c)
+}
+
+type KClient struct {
+	ID   string `json:"id,omitempty"`
+	Sign []byte `json:"sign,omitempty"`
+}
+
+func (c KClient) Bytes() []byte {
+	d, _ := JsonMarshal(c)
+	return append(d, "\n"...)
+}
+
+func DecodeKMsg(data []byte) (KMsg, error) {
 	c := KMsg{}
 	return c, JsonUnmarshal(data, &c)
 }
@@ -51,5 +66,12 @@ func ErrNotWhitelist(err error) []byte {
 	return ErrCode{
 		Code: 10003,
 		Msg:  fmt.Sprintf("not in white list,%s", err.Error()),
+	}.Bytes()
+}
+
+func ErrSignError(err error) []byte {
+	return ErrCode{
+		Code: 10004,
+		Msg:  fmt.Sprintf("sign error,%s", err.Error()),
 	}.Bytes()
 }
