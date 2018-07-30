@@ -32,7 +32,6 @@ func (u *UdpServer) Listen(port int64) error {
 
 func (u *UdpServer) onHandleConn(conn *net.UDPConn) {
 	kb := types.NewKBuffer()
-
 	for {
 		buf := make([]byte, 1024*16)
 		n, addr, err := conn.ReadFromUDP(buf)

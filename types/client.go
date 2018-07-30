@@ -4,17 +4,15 @@ import "fmt"
 
 func DecodeClient(data []byte) (KMsg, error) {
 	c := KMsg{}
-	return c, json.Unmarshal(data, &c)
+	return c, JsonUnmarshal(data, &c)
 }
 
 type KMsg struct {
-	TID   string `json:"tid,omitempty"`
-	TAddr string `json:"taddr,omitempty"`
-	Data  []byte `json:"data,omitempty"`
+	TID string `json:"tid,omitempty"`
 }
 
 func (c KMsg) Bytes() []byte {
-	d, _ := json.Marshal(c)
+	d, _ := JsonMarshal(c)
 	return append(d, "\n"...)
 }
 
@@ -24,7 +22,7 @@ type ErrCode struct {
 }
 
 func (e ErrCode) Bytes() []byte {
-	d, _ := json.Marshal(e)
+	d, _ := JsonMarshal(e)
 	return append(d, "\n"...)
 }
 
