@@ -12,6 +12,7 @@ var (
 
 func Init() {
 	cfg = config.GetCfg()
-	clientsCache = cfg.Cache
 	logger = config.Log().New("package", "server")
+	clientsCache = cfg.GetCache()
+
 }

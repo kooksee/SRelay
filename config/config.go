@@ -3,8 +3,44 @@ package config
 import (
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/inconshreveable/log15"
 	"github.com/patrickmn/go-cache"
 )
+
+func Log() log15.Logger {
+	if GetCfg().l == nil {
+		panic("please init srelay log")
+	}
+	return GetCfg().l
+}
+
+// IsWhitelist 是否属于白名单
+func (t *Config) IsWhitelist(k string) bool {
+	if t.wl == nil {
+		return true
+	} else {
+		_, ok := t.wl[k]
+		return ok
+	}
+}
+
+// CheckAddress 签名是否正确以及是否在白名单中
+func (t *Config) CheckAddress(id string, sign []byte) bool {
+	pk, err := crypto.Ecrecover(common.Hex2Bytes(id), sign)
+	if err != nil {
+		Log().Error(err.Error())
+		return false
+	}
+	addr := common.BytesToAddress(pk).Hex()
+	return t.IsWhitelist(addr)
+}
+
+// GetCache 获得缓存
+func (t *Config) GetCache() *cache.Cache {
+	return t.c
+}
 
 func GetCfg() *Config {
 	once.Do(func() {
@@ -14,7 +50,7 @@ func GetCfg() *Config {
 			Debug:     false,
 			Nat:       false,
 			Whitelist: "",
-			Cache:     cache.New(time.Minute*5, 10*time.Minute),
+			c:         cache.New(time.Minute*5, 10*time.Minute),
 		}
 	})
 	return instance

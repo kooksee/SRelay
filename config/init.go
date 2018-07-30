@@ -6,8 +6,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/inconshreveable/log15"
 	"github.com/patrickmn/go-cache"
 )
@@ -24,7 +22,7 @@ type Config struct {
 	Host      string
 	Port      int64
 
-	Cache *cache.Cache
+	c *cache.Cache
 
 	l  log15.Logger
 	wl map[string]interface{}
@@ -56,32 +54,4 @@ func (t *Config) InitWhitelist() {
 	if err := json.Unmarshal(dt, &t.wl); err != nil {
 		panic(err.Error())
 	}
-}
-
-// IsWhitelist 是否属于白名单
-func (t *Config) IsWhitelist(k string) bool {
-	if t.wl == nil {
-		return true
-	} else {
-		_, ok := t.wl[k]
-		return ok
-	}
-}
-
-// CheckAddress 签名是否正确以及是否在白名单中
-func (t *Config) CheckAddress(id string, sign []byte) bool {
-	pk, err := crypto.Ecrecover(common.Hex2Bytes(id), sign)
-	if err != nil {
-		Log().Error(err.Error())
-		return false
-	}
-	addr := common.BytesToAddress(pk).Hex()
-	return t.IsWhitelist(addr)
-}
-
-func Log() log15.Logger {
-	if GetCfg().l == nil {
-		panic("please init srelay log")
-	}
-	return GetCfg().l
 }
