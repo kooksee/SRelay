@@ -65,10 +65,10 @@ func (ks *TcpServer) onHandle(conn net.Conn) {
 			}
 
 			// 缓存，如果客户端没有定时确认连接，那么连接就会过时
-			if cfg.IsWhitelist(client.ID) {
-				clientsCache.SetDefault(client.ID, conn)
+			if cfg.IsWhitelist(client.TID) {
+				clientsCache.SetDefault(client.TID, conn)
 			} else {
-				if _, err := conn.Write(types.ErrNotWhitelist(errors.New(fmt.Sprintf("%s not in white list", client.ID)))); err != nil {
+				if _, err := conn.Write(types.ErrNotWhitelist(errors.New(fmt.Sprintf("%s not in white list", client.TID)))); err != nil {
 					logger.Error("tcp onHandle 2", "err", err.Error())
 				}
 			}

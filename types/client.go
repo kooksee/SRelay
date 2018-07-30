@@ -8,9 +8,9 @@ func DecodeClient(data []byte) (KMsg, error) {
 }
 
 type KMsg struct {
-	ID   string `json:"id,omitempty"`
-	Addr string `json:"addr,omitempty"`
-	Data []byte `json:"data,omitempty"`
+	TID   string `json:"tid,omitempty"`
+	TAddr string `json:"taddr,omitempty"`
+	Data  []byte `json:"data,omitempty"`
 }
 
 func (c KMsg) Bytes() []byte {
