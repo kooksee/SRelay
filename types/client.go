@@ -22,7 +22,7 @@ func DecodeKMsg(data []byte) (KMsg, error) {
 }
 
 type KMsg struct {
-	TID string `json:"tid,omitempty"`
+	TN string `json:"tn,omitempty"`
 }
 
 func (c KMsg) Bytes() []byte {
@@ -72,5 +72,12 @@ func ErrSignError(err error) []byte {
 	return ErrCode{
 		Code: 10004,
 		Msg:  fmt.Sprintf("sign error,%s", err.Error()),
+	}.Bytes()
+}
+
+func ErrNodeUrlParseError(err error) []byte {
+	return ErrCode{
+		Code: 10005,
+		Msg:  fmt.Sprintf("the node url parse error,%s", err.Error()),
 	}.Bytes()
 }

@@ -72,10 +72,18 @@ func (u *UdpServer) onHandleConn(conn *net.UDPConn) {
 				continue
 			}
 
+			id, err := types.GetNodeID(c.TN)
+			if err != nil {
+				if _, err := conn.WriteToUDP(types.ErrNodeUrlParseError(errors.New(fmt.Sprintf("node url %s", c.TN))), addr); err != nil {
+					logger.Error("onHandleConn3", "err", err.Error())
+				}
+				continue
+			}
+
 			// 得到id
-			con, b := clientsCache.Get(c.TID)
+			con, b := clientsCache.Get(id)
 			if !b {
-				if _, err := conn.WriteToUDP(types.ErrPeerNotFound(errors.New(fmt.Sprintf("peer %s is nonexistent", c.TID))), addr); err != nil {
+				if _, err := conn.WriteToUDP(types.ErrPeerNotFound(errors.New(fmt.Sprintf("peer %s is nonexistent", id))), addr); err != nil {
 					logger.Error("onHandleConn3", "err", err.Error())
 				}
 				continue
@@ -83,7 +91,7 @@ func (u *UdpServer) onHandleConn(conn *net.UDPConn) {
 
 			if _, err := con.(*net.TCPConn).Write(append(m, "\n"...)); err != nil {
 				//	写入后端数据失败
-				if _, err := conn.WriteToUDP(types.ErrPeerWrite(errors.New(fmt.Sprintf("peer %s write %s error", c.TID, m[1:]))), addr); err != nil {
+				if _, err := conn.WriteToUDP(types.ErrPeerWrite(errors.New(fmt.Sprintf("peer %s write %s error", id, m[1:]))), addr); err != nil {
 					logger.Error("onHandleConn4", "err", err.Error())
 				}
 				continue
