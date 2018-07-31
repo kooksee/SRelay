@@ -27,18 +27,21 @@ func (t *Config) IsWhitelist(k string) bool {
 }
 
 // CheckAddress 签名是否正确以及是否在白名单中
-func (t *Config) CheckAddress(id string, sign []byte) bool {
-	pk, err := crypto.Ecrecover(common.Hex2Bytes(id), sign)
+func (t *Config) CheckAddress(sign []byte) (string, bool) {
+	pk, err := crypto.Ecrecover([]byte(""), sign)
 	if err != nil {
-		Log().Error(err.Error())
-		return false
+		Log().Error("CheckAddress Ecrecover Error", "err", err)
+		return "", false
 	}
 	addr := common.BytesToAddress(pk).Hex()
-	return t.IsWhitelist(addr)
+	return addr, t.IsWhitelist(addr)
 }
 
 // GetCache 获得缓存
 func (t *Config) GetCache() *cache.Cache {
+	if t.c == nil {
+		panic("please init cache")
+	}
 	return t.c
 }
 

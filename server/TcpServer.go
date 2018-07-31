@@ -65,22 +65,13 @@ func (ks *TcpServer) onHandle(conn net.Conn) {
 			}
 
 			// 检查用户的签名
-			if !cfg.CheckAddress(client.ID, client.Sign) {
-				if _, err := conn.Write(types.ErrSignError(errors.New(fmt.Sprintf("%s sign error", client.ID)))); err != nil {
+			if addr, b := cfg.CheckAddress(client.Sign); !b {
+				if _, err := conn.Write(types.ErrSignError(errors.New(fmt.Sprintf("sign error")))); err != nil {
 					logger.Error("tcp onHandle 3", "err", err.Error())
 				}
-				continue
+			} else {
+				clientsCache.SetDefault(addr, conn)
 			}
-
-			// 缓存，如果客户端没有定时确认连接，那么连接就会过时
-			if !cfg.IsWhitelist(client.ID) {
-				if _, err := conn.Write(types.ErrNotWhitelist(errors.New(fmt.Sprintf("%s not in white list", client.ID)))); err != nil {
-					logger.Error("tcp onHandle 2", "err", err.Error())
-				}
-				continue
-			}
-
-			clientsCache.SetDefault(client.ID, conn)
 		}
 	}
 }

@@ -8,7 +8,6 @@ func DecodeKClient(data []byte) (KClient, error) {
 }
 
 type KClient struct {
-	ID   string `json:"id,omitempty"`
 	Sign []byte `json:"sign,omitempty"`
 }
 

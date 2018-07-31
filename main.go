@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,6 +17,8 @@ import (
 const Version = "1.0"
 
 func runApp(port int64) {
+	server.Init()
+
 	us := &server.UdpServer{}
 	if err := us.Listen(port); err != nil {
 		panic(err.Error())
@@ -26,8 +29,8 @@ func runApp(port int64) {
 		panic(err.Error())
 	}
 
-	fmt.Println("listen tcp", "0.0.0.0", port)
-	fmt.Println("listen udp", "0.0.0.0", port)
+	log.Print("listen tcp", "0.0.0.0", port)
+	log.Print("listen udp", "0.0.0.0", port)
 }
 
 func main() {
@@ -36,7 +39,7 @@ func main() {
 	flag.BoolVar(&cfg.Debug, "d", cfg.Debug, "debug mode")
 	flag.Int64Var(&cfg.Port, "p", cfg.Port, "app port")
 	flag.BoolVar(&cfg.Nat, "nat", cfg.Nat, "is pnp or pmp")
-	flag.StringVar(&cfg.Whitelist, "wl", cfg.Whitelist, "white list file")
+	flag.StringVar(&cfg.Whitelist, "wl", cfg.Whitelist, "whitelist file path")
 	flag.Parse()
 	cfg.InitLog()
 
@@ -58,7 +61,7 @@ func main() {
 		}
 	}
 
-	server.Init()
+	// 运行应用
 	runApp(cfg.Port)
 
 	// 处理程序退出问题

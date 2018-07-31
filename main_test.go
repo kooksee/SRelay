@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/blevesearch/bleve"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/huichen/sego"
 	"github.com/ipfs/go-ipfs-chunker"
 )
 
@@ -77,4 +79,74 @@ func TestName5(t *testing.T) {
 	if err := ioutil.WriteFile("kkkk", cks, 0755); err != nil {
 		panic(err.Error())
 	}
+}
+
+// 全文检索功能测试
+func TestName11(t *testing.T) {
+	message := struct {
+		Id   string
+		From string
+		Body string
+	}{
+		Id:   "example",
+		From: "marty.schoch@gmail.com",
+		Body: "bleve indexing is easy",
+	}
+
+	mapping := bleve.NewIndexMapping()
+	index, err := bleve.New("example.bleve", mapping)
+	if err != nil {
+		panic(err)
+	}
+	if err := index.Index(message.Id, message); err != nil {
+		panic(err.Error())
+	}
+}
+
+// 全文检索查询
+func TestName22(t *testing.T) {
+	index, _ := bleve.Open("example.bleve")
+	query := bleve.NewQueryStringQuery("bleve")
+	searchRequest := bleve.NewSearchRequest(query)
+	searchResult, _ := index.Search(searchRequest)
+	fmt.Println(searchResult.String())
+	fmt.Println("ok")
+}
+
+// sego 中文分词
+func TestName44(t *testing.T) {
+	// 载入词典
+	var segmenter sego.Segmenter
+	segmenter.LoadDictionary("/Users/barry/gopath/src/github.com/huichen/sego/data/dictionary.txt")
+
+	// 分词
+	text := []byte("中华人民共和国中央人民政府")
+	segments := segmenter.Segment(text)
+
+	// 处理分词结果
+	// 支持普通模式和搜索模式两种分词，见代码中SegmentsToString函数的注释。
+	fmt.Println(sego.SegmentsToString(segments, true))
+	fmt.Println(sego.SegmentsToSlice(segments, true))
+
+	message := struct {
+		Id   string
+		Body string
+	}{
+		Id:   "example12345",
+		Body: "中华人民共和国中央人民政府",
+	}
+
+	index, err := bleve.Open("example.bleve")
+	if err != nil {
+		panic(err)
+	}
+	if err := index.Index(message.Id, message); err != nil {
+		panic(err.Error())
+	}
+
+	query := bleve.NewQueryStringQuery("人民 共和国")
+	searchRequest := bleve.NewSearchRequest(query)
+	searchResult, _ := index.Search(searchRequest)
+	fmt.Println(searchResult.String())
+	fmt.Println("ok")
 }
